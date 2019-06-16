@@ -20,9 +20,12 @@
 
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
+#include "usb_device.h"
 
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
+#include "usbd_customhid.h"
+#include "stdbool.h"
 
 /* USER CODE END Includes */
 
@@ -42,22 +45,45 @@
 /* USER CODE END PM */
 
 /* Private variables ---------------------------------------------------------*/
-PCD_HandleTypeDef hpcd_USB_FS;
 
 /* USER CODE BEGIN PV */
+extern USBD_HandleTypeDef hUsbDeviceFS;
 
 /* USER CODE END PV */
 
 /* Private function prototypes -----------------------------------------------*/
 void SystemClock_Config(void);
 static void MX_GPIO_Init(void);
-static void MX_USB_PCD_Init(void);
 /* USER CODE BEGIN PFP */
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+
+void send_GP_Report(){
+	uint8_t report[4] = {0,0,0,0};
+	report[0] |= !(bool)(B_GPIO_Port->IDR & B_Pin) << 0;
+	report[0] |= !(bool)(A_GPIO_Port->IDR & A_Pin) << 1;
+	report[0] |= !(bool)(C_LEFT_GPIO_Port->IDR & C_LEFT_Pin) << 2;
+	report[0] |= !(bool)(C_DOWN_GPIO_Port->IDR & C_DOWN_Pin) << 3;
+	report[0] |= !(bool)(C_RIGHT_GPIO_Port->IDR & C_RIGHT_Pin) << 4;
+	report[0] |= !(bool)(C_UP_GPIO_Port->IDR & C_UP_Pin) << 5;
+	report[0] |= !(bool)(L_GPIO_Port->IDR & L_Pin) << 6;
+	report[0] |= !(bool)(R_GPIO_Port->IDR & R_Pin) << 7;
+	report[1] |= !(bool)(START_GPIO_Port->IDR & START_Pin) << 0;
+	report[1] |= !(bool)(SELECT_GPIO_Port->IDR & SELECT_Pin) << 1;
+	bool d_up = !(D_UP_GPIO_Port->IDR & D_UP_Pin);
+	bool d_down = !(D_DOWN_GPIO_Port->IDR & D_DOWN_Pin);
+	bool d_right = !(D_RIGHT_GPIO_Port->IDR & D_RIGHT_Pin);
+	bool d_left = !(D_LEFT_GPIO_Port->IDR & D_LEFT_Pin);
+	report[1] |= (d_right | d_left) << 2;
+	report[1] |= d_left << 3;
+	report[1] |= (d_up | d_down) <<4;
+	report[1] |= d_up <<5;
+	USBD_CUSTOM_HID_SendReport(&hUsbDeviceFS,report,2);
+}
 
 /* USER CODE END 0 */
 
@@ -90,7 +116,7 @@ int main(void)
 
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
-  MX_USB_PCD_Init();
+  MX_USB_DEVICE_Init();
   /* USER CODE BEGIN 2 */
 
   /* USER CODE END 2 */
@@ -99,6 +125,11 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+	 send_GP_Report();
+	 HAL_Delay(2);
+	 //while(USBD_Get_USB_Status() != USBD_OK);
+//	 HAL_Delay(2);
+//	 USBD_
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
@@ -151,37 +182,6 @@ void SystemClock_Config(void)
 }
 
 /**
-  * @brief USB Initialization Function
-  * @param None
-  * @retval None
-  */
-static void MX_USB_PCD_Init(void)
-{
-
-  /* USER CODE BEGIN USB_Init 0 */
-
-  /* USER CODE END USB_Init 0 */
-
-  /* USER CODE BEGIN USB_Init 1 */
-
-  /* USER CODE END USB_Init 1 */
-  hpcd_USB_FS.Instance = USB;
-  hpcd_USB_FS.Init.dev_endpoints = 8;
-  hpcd_USB_FS.Init.speed = PCD_SPEED_FULL;
-  hpcd_USB_FS.Init.low_power_enable = DISABLE;
-  hpcd_USB_FS.Init.lpm_enable = DISABLE;
-  hpcd_USB_FS.Init.battery_charging_enable = DISABLE;
-  if (HAL_PCD_Init(&hpcd_USB_FS) != HAL_OK)
-  {
-    Error_Handler();
-  }
-  /* USER CODE BEGIN USB_Init 2 */
-
-  /* USER CODE END USB_Init 2 */
-
-}
-
-/**
   * @brief GPIO Initialization Function
   * @param None
   * @retval None
@@ -201,7 +201,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pin = SELECT_Pin|START_Pin|D_DOWN_Pin|R_Pin 
                           |C_LEFT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
   /*Configure GPIO pins : D_LEFT_Pin D_RIGHT_Pin L_Pin D_UP_Pin 
@@ -211,7 +211,7 @@ static void MX_GPIO_Init(void)
                           |A_Pin|C_UP_Pin|C_DOWN_Pin|B_Pin 
                           |C_RIGHT_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 }
