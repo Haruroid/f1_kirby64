@@ -114,13 +114,12 @@ static uint8_t  USBD_CUSTOM_HID_EP0_RxReady (USBD_HandleTypeDef  *pdev);
   * @{
   */ 
 
-
 USBD_ClassTypeDef  USBD_CUSTOM_HID = 
 {
   USBD_CUSTOM_HID_Init,
   USBD_CUSTOM_HID_DeInit,
   USBD_CUSTOM_HID_Setup,
-  NULL, /*EP0_TxSent*/
+  NULL, /*EP0_TxSent*/  
   USBD_CUSTOM_HID_EP0_RxReady, /*EP0_RxReady*/ /* STATUS STAGE IN */
   USBD_CUSTOM_HID_DataIn, /*DataIn*/
   USBD_CUSTOM_HID_DataOut,
